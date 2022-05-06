@@ -12,7 +12,6 @@ from torch.autograd import Variable
 from torchvision.utils import save_image
 import argparse
 import os
-import random
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -25,7 +24,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from disc import Discriminator
+from disc import *
 
 parser = argparse.ArgumentParser()
 
@@ -60,6 +59,8 @@ parser.add_argument("--pretrain_epochs",type=int,default=1,help="how many epochs
 parser.add_argument("--num_batches",type=int, default=10000,help="max batches per epoch")
 
 parser.add_argument("--save",type=bool,default=False,help="whether to save the discirimianor")
+
+parser.add_argument("--path",type=str,default="dc_discrim.pt",help="where to save the dscirimnator")
 
 args = parser.parse_args()
 print(f"Running with following CLI options: {args}")
@@ -104,14 +105,6 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=bat
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 limit=min(num_batches*batch_size,len(train_loader)*batch_size)
-
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
 
 
 # Generator Code
@@ -295,7 +288,7 @@ for epoch in range(num_epochs):
         iters += 1
 
 if args.save:
-    torch.save(netD, checkpoint_dir+"dc_discrim.pt")
+    torch.save(netD, checkpoint_dir+args.path)
 
 if args.draw:
     real_batch=next(iter(test_loader))
