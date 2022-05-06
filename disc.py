@@ -2,6 +2,8 @@ from string_globals import *
 import torch.nn as nn
 import torch.nn.parallel
 
+
+
 class Discriminator(nn.Module):
     def __init__(self, ngpu,disc_features):
         super(Discriminator, self).__init__()

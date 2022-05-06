@@ -214,7 +214,8 @@ def train_step(i,data,pretrain=False):
     ## Train with all-fake batch
     # Generate batch of latent vectors
     if pretrain:
-        fake=torch.randn(b_size,1,image_size,image_size,device=device)
+        fake=torch.randn(b_size,1,image_size,image_size,device=device) *0.3081 + 0.1307
+        #fake=torch.empty((b_size,1,image_size,image_size))._normal()
     else:
         noise = torch.randn(b_size, latent_dim, 1, 1, device=device)
         # Generate fake image batch with G
