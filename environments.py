@@ -4,13 +4,17 @@ import sys
 import torch
 import matplotlib.pyplot as plt
 from gym.spaces import MultiDiscrete,Tuple,Dict,Discrete,MultiBinary
+from datetime import datetime
 from discrete_space_fix import DiscretePrime
 from ray.rllib.env.env_context import EnvContext
+import os
 
 image_size=64
 
 class DrawingEnv(gym.Env): #most basic environemnt
     def __init__(self,config: EnvContext):
+        print("Creating drawing environment")
+        self.episodes_completed=0
         self.discriminator=config["discriminator"]
         self.action_space=MultiDiscrete([3,3,2])
         '''
@@ -37,6 +41,14 @@ class DrawingEnv(gym.Env): #most basic environemnt
         self.y=np.random.randint(0,self.image_size)
         self.history=[]
         self.step_count=0
+        self.draw=config["draw"]
+
+        if self.draw:
+            timestamp=datetime.now()
+            timestring=timestamp.strftime("%m-%d-%H:%M:%S")
+            self.image_dir=config["image_dir"]+"{}_{}/".format(timestring,os.getpid())
+            if not os.path.exists(self.image_dir):
+                os.makedirs(self.image_dir)
 
     def render(self):
         plt.imshow(self.board)
@@ -45,9 +57,10 @@ class DrawingEnv(gym.Env): #most basic environemnt
         return {"board":self.board.flatten(),"x":self.x,"y":self.y}
 
     def reset(self):
+        self.episodes_completed+=1
         self.history=[]
         self.step_count=0
-        self.board=np.array([[1 for y in range(self.image_size)] for x in range(self.image_size)])
+        self.board=np.array([[0 for y in range(self.image_size)] for x in range(self.image_size)])
         self.x=np.random.randint(0,self.image_size)
         self.y=np.random.randint(0,self.image_size)
         return self._get_state()
@@ -80,6 +93,9 @@ class DrawingEnv(gym.Env): #most basic environemnt
         done=False
         if reward>=self.threshold or self.step_count >= self.horizon:
             done=True
+            if self.draw:
+                img_path=self.image_dir+"board_{}.jpg".format(self.episodes_completed)
+                plt.imsave(img_path,self.board *255,cmap="gray")
 
         return self._get_state(),reward,done,{}
 

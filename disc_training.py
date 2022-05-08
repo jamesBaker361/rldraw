@@ -54,7 +54,7 @@ parser.add_argument("--lr",type=float,default=0.002,help="learning rate for ADAM
 
 parser.add_argument("--num_epochs",type=int,default=25,help="how may epocs to train for")
 
-parser.add_argument("--pretrain_epochs",type=int,default=1,help="how many epochs to train discriminator one")
+parser.add_argument("--pretrain_epochs",type=int,default=0,help="how many epochs to train discriminator one")
 
 parser.add_argument("--num_batches",type=int, default=10000,help="max batches per epoch")
 
@@ -113,7 +113,7 @@ class Generator(nn.Module):
     def __init__(self, ngpu):
         super(Generator, self).__init__()
         self.ngpu = ngpu
-        self.main = nn.Sequential(
+        layers=[
             # input is Z, going into a convolution
             nn.ConvTranspose2d( latent_dim, gen_features * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(gen_features * 8),
@@ -126,15 +126,19 @@ class Generator(nn.Module):
             nn.ConvTranspose2d( gen_features * 4, gen_features * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(gen_features * 2),
             nn.ReLU(True),
-            # state size. (gen_features*2) x 16 x 16
-            nn.ConvTranspose2d( gen_features * 2, gen_features, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(gen_features),
-            nn.ReLU(True),
-            # state size. (gen_features) x 32 x 32
-            nn.ConvTranspose2d( gen_features, 1, 4, 2, 1, bias=False),
-            nn.Tanh()
-            # state size. (nc) x 64 x 64
-        )
+        ]
+        if image_size > 32:
+            layers+=[
+                # state size. (gen_features*2) x 16 x 16
+                nn.ConvTranspose2d( gen_features * 2, gen_features, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(gen_features),
+                nn.ReLU(True),
+                nn.ConvTranspose2d(gen_features, 1,4,2,1,bias=False)
+            ]
+        else:
+            layers+=[nn.ConvTranspose2d(gen_features * 2, 1,4,2,1,bias=False)]
+        layers+=[nn.Tanh()]
+        self.main = nn.Sequential(*layers)
 
     def forward(self, input):
         return self.main(input)
@@ -151,7 +155,7 @@ if (device.type == 'cuda') and (ngpu > 1):
 netG.apply(weights_init)
 
 # Create the Discriminator
-netD = Discriminator(ngpu,disc_features).to(device)
+netD = Discriminator(ngpu,disc_features,image_size).to(device)
 
 # Handle multi-gpu if desired
 if (device.type == 'cuda') and (ngpu > 1):
@@ -195,6 +199,7 @@ def train_step(i,data,pretrain=False):
     real_cpu = data[0].to(device)
     b_size = real_cpu.size(0)
     label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+
     # Forward pass real batch through D
     output = netD(real_cpu).view(-1)
     # Calculate loss on all-real batch
@@ -218,6 +223,7 @@ def train_step(i,data,pretrain=False):
     # Classify all fake batch with D
     output = netD(fake.detach()).view(-1)
     # Calculate D's loss on the all-fake batch
+    #print(label.size())
     errD_fake = criterion(output, label)
     # Calculate the gradients for this batch, accumulated (summed) with previous gradients
     errD_fake.backward()

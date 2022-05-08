@@ -11,29 +11,33 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 class Discriminator(nn.Module):
-    def __init__(self, ngpu,disc_features):
+    def __init__(self, ngpu,disc_features,image_size=64):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
+        layers=[
+            # input is (nc) x image_size x image_size
             nn.Conv2d(1, disc_features, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (disc_features) x 32 x 32
+            # state size. (disc_features) x image_size/2 x image_size/2
             nn.Conv2d(disc_features, disc_features * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(disc_features * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (disc_features*2) x 16 x 16
+            # state size. (disc_features*2) x image_size/4 x image_size/4
             nn.Conv2d(disc_features * 2, disc_features * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(disc_features * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (disc_features*4) x 8 x 8
+            nn.LeakyReLU(0.2, inplace=True)
+        ]
+        if image_size >32:
+            layers+=[
             nn.Conv2d(disc_features * 4, disc_features * 8, 4, 2, 1, bias=False),
             nn.BatchNorm2d(disc_features * 8),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (disc_features*8) x 4 x 4
-            nn.Conv2d(disc_features * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
+            nn.Conv2d(disc_features * 8, 1, 4, 1, 0, bias=False)]
+        else:
+            layers+=[nn.Conv2d(disc_features * 4, disc_features*8, 4, 2, 1, bias=False)]
+        layers+=[
+            nn.Sigmoid()]
+        self.main = nn.Sequential(*layers)
 
     def forward(self, input):
         return self.main(input)
