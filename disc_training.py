@@ -6,25 +6,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
 import argparse
-from torch.autograd import Variable
-from torchvision.utils import save_image
 import argparse
-import os
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from disc import *
+from data_loading import *
 
 parser = argparse.ArgumentParser()
 
@@ -62,6 +55,8 @@ parser.add_argument("--save",type=bool,default=False,help="whether to save the d
 
 parser.add_argument("--path",type=str,default="dc_discrim.pt",help="where to save the dscirimnator")
 
+parser.add_argument("--char",type=int,default=10,help="which char to use for dataset")
+
 args = parser.parse_args()
 print(f"Running with following CLI options: {args}")
 
@@ -90,19 +85,7 @@ pretrain_epochs=args.pretrain_epochs
 
 num_batches=args.num_batches
 
-# MNIST Dataset
-transform = transforms.Compose([
-    transforms.Resize(image_size)
-    ,transforms.ToTensor()
-    #,transforms.Normalize(mean=(0.5), std=(0.5))
-    ])
-
-train_dataset = datasets.MNIST(root=mnist_dir, train=True, transform=transform, download=True)
-test_dataset = datasets.MNIST(root=mnist_dir, train=False, transform=transform, download=False)
-
-# Data Loader (Input Pipeline)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+train_loader,test_loader=get_data_loaders_specific_char(mnist_dir,image_size,batch_size,args.char)
 
 limit=min(num_batches*batch_size,len(train_loader)*batch_size)
 

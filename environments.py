@@ -44,9 +44,7 @@ class DrawingEnv(gym.Env): #most basic environemnt
         self.draw=config["draw"]
 
         if self.draw:
-            timestamp=datetime.now()
-            timestring=timestamp.strftime("%m-%d-%H:%M:%S")
-            self.image_dir=config["image_dir"]+"{}_{}/".format(timestring,os.getpid())
+            self.image_dir=config["image_dir"]
             if not os.path.exists(self.image_dir):
                 os.makedirs(self.image_dir)
 

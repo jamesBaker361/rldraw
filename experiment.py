@@ -15,20 +15,22 @@ parser.add_argument("--horizon",type=int,default=500,help="how many steps per ep
 parser.add_argument("--threshold",type=float,default=0.99,help="threshold of discriminator confidence before we end the episode")
 parser.add_argument("--draw",type=bool,default=True,help="whether to draw the environment at the end of each episode")
 parser.add_argument("--timesteps",type=int,default=500000,help="how many timestepsin total")
+parser.add_argument("--name",type=str,default="name")
+parser.add_argument("--char",type=int,default=10,help="which char to use for dataset")
 
 args = parser.parse_args()
 
 def yesman(x):
     return torch.tensor([[[[np.random.random()]]]])
 
-disc=torch.load(checkpoint_dir+"disc{}.pt".format(args.image_size))
+disc=torch.load(checkpoint_dir+"disc_{}_{}.pt".format(args.image_size,args.path))
 
 env_config={
     "discriminator":disc,
     "image_size":args.image_size,
     "threshold":args.threshold,
     "horizon":args.horizon,
-    "image_dir":gen_imgs_dir,
+    "image_dir":gen_imgs_dir+"/{}/".format(args.name),
     "draw":True
 }
 
