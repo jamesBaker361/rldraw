@@ -16,12 +16,12 @@ class DrawingEnv(gym.Env): #most basic environemnt
         print("Creating drawing environment")
         self.episodes_completed=0
         self.discriminator=config["discriminator"]
-        self.action_space=MultiDiscrete([3,3,2])
+        self.action_space=MultiDiscrete([3,3,3])
         '''
         Horizontally, the agent can move left,right, or not at all (x dimension)
         Vertically, the agent can move up,down,right, or not at all (y dimension)
 
-        The agent can color the current square white or black (0,1)
+        The agent can color the current square white or black (0,1) or not at all (2)
         '''
         self.image_size=config["image_size"]
         self.observation_space=Dict({
@@ -99,3 +99,46 @@ class DrawingEnv(gym.Env): #most basic environemnt
 
 
 
+class ThickDrawingEnv(DrawingEnv):
+    #same as DrawingEnv but with adjustable thickness of the brush
+    def __init__(self,config: EnvContext):
+        self.thickness=config["thickness"]
+        super().__init__(config)
+
+
+    def step(self,action):
+        #assuming action= [vertical,horizontal,color]
+        self.history.append(self.board.copy())
+        self.step_count+=1
+        [horizontal,vertical,color]=action
+        if color!=2:
+            for h in range(self.x,self.x+self.thickness):
+                for v in range(self.y,self.y+self.thickness):
+                    if h <self.image_size and v <self.image_size:
+                        self.board[h][v]=color
+        if horizontal ==2:
+            self.x+=1
+        elif horizontal==1:
+            self.x-=1
+        self.x=self.x%self.image_size
+
+        if vertical ==2:
+            self.y+=1
+        elif vertical==1:
+            self.y-=1
+        self.y=self.y%self.image_size
+
+        tensor=torch.from_numpy(np.expand_dims(self.board.astype(np.float32),axis=(0,1)))
+
+        output=self.discriminator(tensor)
+
+        reward=output.tolist()[0][0][0][0]
+
+        done=False
+        if reward>=self.threshold or self.step_count >= self.horizon:
+            done=True
+            if self.draw and self.episodes_completed %3==0:
+                img_path=self.image_dir+"board_{}.jpg".format(self.episodes_completed)
+                plt.imsave(img_path,self.board *255,cmap="gray")
+
+        return self._get_state(),reward,done,{}

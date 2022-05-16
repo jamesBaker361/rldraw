@@ -85,7 +85,7 @@ pretrain_epochs=args.pretrain_epochs
 
 num_batches=args.num_batches
 
-train_loader,test_loader=get_data_loaders_specific_char(mnist_dir,image_size,batch_size,args.char)
+train_loader,test_loader=get_data_loaders_specific_char(mnist_dir,image_size,batch_size,args.char,channels=1)
 
 limit=min(num_batches*batch_size,len(train_loader)*batch_size)
 

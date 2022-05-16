@@ -1,5 +1,5 @@
 #from stable_baselines3.common.policies import MlpPolicy
-from environments import DrawingEnv
+from environments import DrawingEnv,ThickDrawingEnv
 from stable_baselines3 import A2C,PPO
 import torch
 import numpy as np
@@ -17,6 +17,7 @@ parser.add_argument("--draw",type=bool,default=True,help="whether to draw the en
 parser.add_argument("--timesteps",type=int,default=500000,help="how many timestepsin total")
 parser.add_argument("--name",type=str,default="name")
 parser.add_argument("--char",type=int,default=10,help="which char to use for dataset")
+parser.add_argument("--thickness",type=int,default=1,help="thickness of brush for thickenv")
 
 args = parser.parse_args()
 
@@ -40,7 +41,8 @@ trainer_dict={
 }
 
 environment_dict={
-    "DrawingEnv":DrawingEnv
+    "DrawingEnv":DrawingEnv,
+    "ThickDrawingEnv":ThickDrawingEnv
 }
 
 env=environment_dict[args.environment](env_config)

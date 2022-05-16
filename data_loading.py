@@ -30,7 +30,7 @@ def get_data_loaders(mnist_dir,image_size,batch_size,channels=1,rgb=False):
 
 def more_channels(channels):
     def _more_channels(arr):
-        return np.stack((arr,)*3, axis=-1)
+        return np.stack((arr,)*channels, axis=-1)
     return _more_channels
 
 def get_data_loaders_specific_char(mnist_dir,image_size,batch_size,char,channels=1,rgb=False):
