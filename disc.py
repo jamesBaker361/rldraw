@@ -34,7 +34,10 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(disc_features * 8, 1, 4, 1, 0, bias=False)]
         else:
-            layers+=[nn.Conv2d(disc_features * 4, disc_features*8, 4, 2, 1, bias=False)]
+            layers+=[nn.Conv2d(disc_features * 4, disc_features*8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_features * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(disc_features * 8, 1, 2, 1, 0, bias=False)]
         layers+=[
             nn.Sigmoid()]
         self.main = nn.Sequential(*layers)

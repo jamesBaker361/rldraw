@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from disc import *
 from data_loading import *
+from torchsummary import summary
 
 parser = argparse.ArgumentParser()
 
@@ -57,7 +58,7 @@ parser.add_argument("--path",type=str,default="dc_discrim.pt",help="where to sav
 
 parser.add_argument("--char",type=int,default=10,help="which char to use for dataset")
 
-args = parser.parse_args()
+args,_ = parser.parse_known_args()
 print(f"Running with following CLI options: {args}")
 
 # Device configuration
@@ -93,7 +94,7 @@ limit=min(num_batches*batch_size,len(train_loader)*batch_size)
 # Generator Code
 
 class Generator(nn.Module):
-    def __init__(self, ngpu):
+    def __init__(self, ngpu,image_size=image_size):
         super(Generator, self).__init__()
         self.ngpu = ngpu
         layers=[
@@ -182,6 +183,8 @@ def train_step(i,data,pretrain=False):
     real_cpu = data[0].to(device)
     b_size = real_cpu.size(0)
     label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+
+    #summary(netG,real_cpu.size()[1:])
 
     # Forward pass real batch through D
     output = netD(real_cpu).view(-1)
