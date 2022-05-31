@@ -35,10 +35,13 @@ class DrawingEnv(gym.Env): #most basic environemnt
         """
         self.horizon=config["horizon"] #how many steps until we give up
         self.threshold =config["threshold"] #what score before we say we've done enough
+        self.lower_threshold=config["lower_threshold"] #scores below this count as 0
         #self.state=[[1.0 for x in range(self.image_size**2)],random.randrange(0,self.image_size),random.randrange(0,self.image_size)]
         self.board=np.array([[1 for y in range(self.image_size)] for x in range(self.image_size)])
-        self.x=np.random.randint(0,self.image_size)
-        self.y=np.random.randint(0,self.image_size)
+        self.action_board=np.array([[0.5 for y in range(self.image_size)] for x in range(self.image_size)])
+        self.initial_board=self.board.copy()
+        self.x=0
+        self.y=0
         self.history=[]
         self.step_count=0
         self.draw=config["draw"]
@@ -59,8 +62,10 @@ class DrawingEnv(gym.Env): #most basic environemnt
         self.history=[]
         self.step_count=0
         self.board=np.array([[0 for y in range(self.image_size)] for x in range(self.image_size)])
-        self.x=np.random.randint(0,self.image_size)
-        self.y=np.random.randint(0,self.image_size)
+        self.initial_board=self.board.copy()
+        self.action_board=np.array([[0.5 for y in range(self.image_size)] for x in range(self.image_size)])
+        self.x=0
+        self.y=0
         return self._get_state()
 
 
@@ -70,6 +75,7 @@ class DrawingEnv(gym.Env): #most basic environemnt
         self.step_count+=1
         [horizontal,vertical,color]=action
         self.board[self.x][self.y]=color
+        self.action_board[self.x][self.y]=color
         if horizontal ==2:
             self.x+=1
         elif horizontal==1:
@@ -88,12 +94,26 @@ class DrawingEnv(gym.Env): #most basic environemnt
 
         reward=output.tolist()[0][0][0][0]
 
+        if reward<self.lower_threshold:
+            reward=0
+
         done=False
         if reward>=self.threshold or self.step_count >= self.horizon:
             done=True
             if self.draw:
                 img_path=self.image_dir+"board_{}.jpg".format(self.episodes_completed)
-                plt.imsave(img_path,self.board *255,cmap="gray")
+                img=[]
+                for x in range(self.image_size):
+                    img.append([])
+                    for y in range(self.image_size):
+                        if self.board[x][y]==0:
+                            img[x].append(0)
+                        else:
+                            img[x].append(255)
+                self.action_board*=255
+                self.initial_board*=255
+                big_img=np.concatenate([self.initial_board,self.action_board,img],axis=-1)
+                plt.imsave(img_path,big_img,cmap="gray")
 
         return self._get_state(),reward,done,{}
 
@@ -134,6 +154,9 @@ class ThickDrawingEnv(DrawingEnv):
 
         reward=output.tolist()[0][0][0][0]
 
+        if reward<self.lower_threshold:
+            reward=0
+
         done=False
         if reward>=self.threshold or self.step_count >= self.horizon:
             done=True
@@ -142,3 +165,39 @@ class ThickDrawingEnv(DrawingEnv):
                 plt.imsave(img_path,self.board *255,cmap="gray")
 
         return self._get_state(),reward,done,{}
+
+
+class StrokeDrawingEnv(DrawingEnv):
+    #instead of doing little dots, this env uses strokes.
+    def __init__():
+        pass
+
+class HintDrawingEnv(DrawingEnv):
+    #this uses initital states that are progressively further and further from initial drawings
+
+    def __init__(self,config: EnvContext):
+        self.data_loader=config["data_loader"]
+        self.distortion=config["distortion"] #percent of initial characters to invert
+        self.final_distortion=config["final_distortion"] #perent of final characters to invert
+        self.distortion_rate= (self.final_distortion-self.distortion)/config["episodes"]
+        super().__init__(config)
+
+    def reset(self):
+        self.episodes_completed+=1
+        self.history=[]
+        self.step_count=0
+        random_int=np.random.randint(1,len(self.data_loader)-2)
+        for x,data in enumerate(self.data_loader):
+            if x>=random_int:
+                break
+        self.board=data[0][0][0].numpy()
+        self.distortion+=self.distortion_rate
+        limit=int(self.distortion*self.image_size)
+        for x in range(limit):
+            for y in range(limit):
+                self.board[x][y]=0
+        self.initial_board=self.board.copy()
+        self.action_board=np.array([[0.5 for y in range(self.image_size)] for x in range(self.image_size)])
+        self.x=0
+        self.y=0
+        return self._get_state()

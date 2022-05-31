@@ -7,11 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import argparse
-import argparse
-import torch
-import torch.nn as nn
 import torch.nn.parallel
-import torch.optim as optim
 import torch.utils.data
 import torchvision.utils as vutils
 import numpy as np
@@ -46,7 +42,7 @@ parser.add_argument("--beta",type=float, default=0.5, help="beta for ADAM")
 
 parser.add_argument("--lr",type=float,default=0.002,help="learning rate for ADAM")
 
-parser.add_argument("--num_epochs",type=int,default=25,help="how may epocs to train for")
+parser.add_argument("--num_epochs",type=int,default=20,help="how may epocs to train for")
 
 parser.add_argument("--pretrain_epochs",type=int,default=0,help="how many epochs to train discriminator one")
 
