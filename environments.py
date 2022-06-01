@@ -3,7 +3,7 @@ import numpy as np
 import sys
 import torch
 import matplotlib.pyplot as plt
-from gym.spaces import MultiDiscrete,Tuple,Dict,Discrete,MultiBinary
+from gym.spaces import MultiDiscrete,Tuple,Dict,Discrete,MultiBinary,Box
 from datetime import datetime
 from discrete_space_fix import DiscretePrime
 from ray.rllib.env.env_context import EnvContext
@@ -71,7 +71,7 @@ class DrawingEnv(gym.Env): #most basic environemnt
 
     def step(self,action):
         #assuming action= [vertical,horizontal,color]
-        self.history.append(self.board.copy())
+        #self.history.append(self.board.copy())
         self.step_count+=1
         [horizontal,vertical,color]=action
         self.board[self.x][self.y]=color
@@ -101,7 +101,7 @@ class DrawingEnv(gym.Env): #most basic environemnt
         if reward>=self.threshold or self.step_count >= self.horizon:
             done=True
             if self.draw:
-                img_path=self.image_dir+"board_{}.jpg".format(self.episodes_completed)
+                img_path=self.image_dir+"board_{}_reward={}.jpg".format(self.episodes_completed,reward)
                 img=[]
                 for x in range(self.image_size):
                     img.append([])
@@ -201,3 +201,59 @@ class HintDrawingEnv(DrawingEnv):
         self.x=0
         self.y=0
         return self._get_state()
+
+
+class DreamEnv(HintDrawingEnv):
+    def __init__(self,config):
+        super().__init__(config)
+        self.latent_dim=config["latent_dim"]
+        self.vae=config["vae"]
+        self.action_space=Dict({
+            "color":DiscretePrime(2), #0=black 1=white
+            "x":DiscretePrime(self.image_size),
+            "y":DiscretePrime(self.image_size)
+        })
+        self.observation_space=Box([-5 for _ in range(2*self.latent_dim)],[5 for _ in range(2*self.latent_dim)])
+
+
+    def step(self,action):
+        [color,x,y]=action
+        self.board[x][y]=color
+        self.action_board[x][y]=color
+        tensor=torch.from_numpy(np.expand_dims(self.board.astype(np.float32),axis=(0,1)))
+
+        output=self.discriminator(tensor)
+
+        reward=output.tolist()[0][0][0][0]
+
+        if reward<self.lower_threshold:
+            reward=0
+
+        done=False
+        if reward>=self.threshold or self.step_count >= self.horizon:
+            done=True
+            if self.draw:
+                img_path=self.image_dir+"board_{}_reward={}.jpg".format(self.episodes_completed,reward)
+                img=[]
+                for x in range(self.image_size):
+                    img.append([])
+                    for y in range(self.image_size):
+                        if self.board[x][y]==0:
+                            img[x].append(0)
+                        else:
+                            img[x].append(255)
+                self.action_board*=255
+                self.initial_board*=255
+                big_img=np.concatenate([self.initial_board,self.action_board,img],axis=-1)
+                plt.imsave(img_path,big_img,cmap="gray")
+
+        return self._get_state(),reward,done,{}
+
+
+
+    def _get_state(self):
+        np_board=np.expand_dims(self.board,axis=(0,1))
+        tensor=torch.from_numpy(np_board)
+        [mu,log_var]=self.vae.encode(tensor)
+        obs=np.concatenate([mu[0].detach().numpy(),log_var[0].detach().numpy()])
+        return {"observation_space":obs}

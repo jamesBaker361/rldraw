@@ -18,7 +18,7 @@ parser.add_argument(
 	"--image_size", type=int, default=64, help="image l,w"
 )
 
-parser.add_argument("--latent_dim",type=int, default=100,help="latent dim for encoded")
+parser.add_argument("--latent_dim",type=int, default=16,help="latent dim for encoded")
 
 parser.add_argument("--disc_features", type=int,default =64, help="discriminator features")
 
@@ -98,5 +98,8 @@ for epoch in range(num_epochs):
         loss=train_step(data,i)
         if i%10==0:
             print("[{}/{}] [{}/{}] loss: {}".format(epoch,num_epochs,i*batch_size,limit,loss))
+
+if args.save:
+    torch.save(checkpoint_dir+args.path)
 
 print("all done!")

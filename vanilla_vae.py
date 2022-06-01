@@ -6,6 +6,17 @@ from types_ import *
 
 #https://github.com/AntixK/PyTorch-VAE/blob/master/models/vanilla_vae.py
 
+class CustomBatchNorm(nn.Module):
+    def __init__(self,channels):
+        super().__init__()
+        self.bn=nn.BatchNorm2d(channels)
+
+    def forward(self,input):
+        if input.size()[0]>1:
+            return self.bn(input)
+        else:
+            return nn.functional.normalize(input)
+
 
 class VanillaVAE(BaseVAE):
 
@@ -32,7 +43,7 @@ class VanillaVAE(BaseVAE):
                 nn.Sequential(
                     nn.Conv2d(in_channels, out_channels=h_dim,
                               kernel_size= 3, stride= 2, padding  = 1),
-                    nn.BatchNorm2d(h_dim),
+                    CustomBatchNorm(h_dim),
                     nn.LeakyReLU())
             )
             self.image_dim=self.image_dim//2
@@ -59,7 +70,7 @@ class VanillaVAE(BaseVAE):
                                        stride = 2,
                                        padding=1,
                                        output_padding=1),
-                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    CustomBatchNorm(hidden_dims[i + 1]),
                     nn.LeakyReLU())
             )
 
@@ -74,7 +85,7 @@ class VanillaVAE(BaseVAE):
                                                stride=2,
                                                padding=1,
                                                output_padding=1),
-                            nn.BatchNorm2d(hidden_dims[-1]),
+                            CustomBatchNorm(hidden_dims[-1]),
                             nn.LeakyReLU(),
                             nn.Conv2d(hidden_dims[-1], out_channels= in_channels,
                                       kernel_size= 3, padding= 1),
