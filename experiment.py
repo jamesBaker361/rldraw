@@ -19,6 +19,8 @@ parser.add_argument("--name",type=str,default="name of the folder to save images
 parser.add_argument("--char",type=int,default=10,help="which char to use for dataset; 10 = all")
 parser.add_argument("--thickness",type=int,default=1,help="thickness of brush for thickenv")
 parser.add_argument("--lower_threshold",type=float,default=0.1)
+parser.add_argument("--latent_dim",type=int, default=16,help="latent dim for encoded")
+
 
 args = parser.parse_args()
 
@@ -45,6 +47,9 @@ if args.environment=="HintDrawingEnv":
     train_loader,test_loader=get_data_loaders_specific_char(mnist_dir,args.image_size,8,args.char,channels=1)
     env_config["data_loader"]=train_loader
 
+if args.environment=="DreamEnv":
+    env_config["vae"]=torch.load(checkpoint_dir+"vae_{}_{}_{}.pt".format(args.image_size,args.char,args.latent_dim))
+
 trainer_dict={
     "a2c":A2C,
     "ppo":PPO
@@ -53,7 +58,8 @@ trainer_dict={
 environment_dict={
     "DrawingEnv":DrawingEnv,
     "ThickDrawingEnv":ThickDrawingEnv,
-    "HintDrawingEnv":HintDrawingEnv
+    "HintDrawingEnv":HintDrawingEnv,
+    "DreamEnv":DreamEnv
 }
 
 env=environment_dict[args.environment](env_config)
